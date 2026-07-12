@@ -1,7 +1,7 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits, PermissionFlagsBits } = require('discord.js');
 const db = require('./db');
-const { attachTempVoice, CONFIG_SCHEMA } = require('./tempvoice');
+const { attachVoiceForge, CONFIG_SCHEMA } = require('./voiceforge');
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates]
@@ -62,7 +62,7 @@ client.once('ready', () => {
 client.on('guildCreate', (g) => upsertGuild.run(client.user.id, g.id, g.name));
 client.on('guildDelete', (g) => removeGuild.run(client.user.id, g.id));
 
-attachTempVoice(client);
+attachVoiceForge(client);
 
 if (!process.env.DISCORD_TOKEN) {
   console.error('❌ DISCORD_TOKEN manquant (fichier .env).');

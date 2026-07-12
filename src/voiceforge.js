@@ -87,7 +87,7 @@ async function syncManagedChannelNames(client) {
   }
 }
 
-function attachTempVoice(client) {
+function attachVoiceForge(client) {
   const tempChannels = new Map(); // { channelId: { ownerId } }
 
   client.once('ready', async () => {
@@ -230,4 +230,4 @@ function attachTempVoice(client) {
   });
 }
 
-module.exports = { attachTempVoice, CONFIG_SCHEMA };
+module.exports = { attachVoiceForge, CONFIG_SCHEMA };
