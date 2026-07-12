@@ -5,8 +5,8 @@ const db = require('./db');
 
 // Schéma de configuration exposé au dashboard : il génère le formulaire.
 const CONFIG_SCHEMA = [
-  { key: 'category_name', label: 'Nom de la catégorie', type: 'text', default: '🔥 VoiceForge', help: "Appliqué au prochain /setup" },
-  { key: 'creator_name', label: 'Nom du salon créateur', type: 'text', default: '➕ Forger un salon', help: "Appliqué au prochain /setup" },
+  { key: 'category_name', label: 'Nom de la catégorie', type: 'text', default: '🔥 VoiceForge', help: "Appliqué automatiquement en quelques secondes (après un premier /setup)" },
+  { key: 'creator_name', label: 'Nom du salon créateur', type: 'text', default: '➕ Forger un salon', help: "Appliqué automatiquement en quelques secondes (après un premier /setup)" },
   { key: 'name_template', label: 'Modèle de nom des salons', type: 'text', default: '🔊 Salon de {user}', help: '{user} = pseudo du membre' },
   { key: 'default_limit', label: 'Limite de membres par défaut', type: 'number', default: 0, min: 0, max: 99, help: '0 = illimité' }
 ];
@@ -53,11 +53,43 @@ const commands = [
       .addUserOption(o => o.setName('membre').setDescription('Nouveau propriétaire').setRequired(true)))
 ].map(c => c.toJSON());
 
+// Renomme la catégorie et le salon créateur si le nom configuré dans le panel
+// diffère du nom réel sur Discord (plutôt que d'attendre un nouveau /setup).
+async function syncManagedChannelNames(client) {
+  for (const guild of client.guilds.cache.values()) {
+    const cfg = configFor(client.user.id, guild.id);
+    if (!cfg.creator_channel_id) continue;
+
+    try {
+      const creator = await guild.channels.fetch(cfg.creator_channel_id).catch(() => null);
+      if (!creator) continue;
+      if (creator.name !== cfg.creator_name) {
+        await creator.setName(cfg.creator_name);
+      }
+
+      const categoryId = cfg.category_id || creator.parentId;
+      if (!categoryId) continue;
+      const category = await guild.channels.fetch(categoryId).catch(() => null);
+      if (!category) continue;
+      if (category.name !== cfg.category_name) {
+        await category.setName(cfg.category_name);
+      }
+      if (!cfg.category_id) {
+        patchConfig(client.user.id, guild.id, { category_id: categoryId });
+      }
+    } catch (err) {
+      console.error(`Sync nommage (guild ${guild.id}) :`, err.message);
+    }
+  }
+}
+
 function attachTempVoice(client) {
   const tempChannels = new Map(); // { channelId: { ownerId } }
 
   client.once('ready', async () => {
     await client.application.commands.set(commands);
+    syncManagedChannelNames(client);
+    setInterval(() => syncManagedChannelNames(client), 15_000);
   });
 
   client.on('voiceStateUpdate', async (oldState, newState) => {
@@ -116,7 +148,7 @@ function attachTempVoice(client) {
         name: cfg.creator_name, type: ChannelType.GuildVoice, parent: category.id
       });
 
-      patchConfig(client.user.id, guild.id, { creator_channel_id: creator.id });
+      patchConfig(client.user.id, guild.id, { creator_channel_id: creator.id, category_id: category.id });
       return interaction.editReply(`✅ VoiceForge est installé ! Rejoins ${creator} pour forger ton salon.`);
     }
 
