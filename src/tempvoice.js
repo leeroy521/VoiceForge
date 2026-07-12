@@ -62,7 +62,11 @@ async function syncManagedChannelNames(client) {
 
     try {
       const creator = await guild.channels.fetch(cfg.creator_channel_id).catch(() => null);
-      if (!creator) continue;
+      if (!creator) {
+        console.warn(`Salon créateur introuvable (guild ${guild.id}), référence effacée — un nouveau /setup est nécessaire.`);
+        patchConfig(client.user.id, guild.id, { creator_channel_id: null, category_id: null });
+        continue;
+      }
       if (creator.name !== cfg.creator_name) {
         await creator.setName(cfg.creator_name);
       }
