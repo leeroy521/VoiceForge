@@ -1,6 +1,6 @@
 # ⚒️ VoiceForge
 
-Bot Discord de **salons vocaux temporaires** (style TempVoice / VoiceMaster).
+Bot Discord de **salons vocaux temporaires**.
 
 - Un membre rejoint **➕ Forger un salon** → un salon vocal à son nom est créé, il en est propriétaire
 - Le salon est supprimé automatiquement quand il est vide
